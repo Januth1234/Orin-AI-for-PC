@@ -25,20 +25,18 @@ export const OrinHome = ({
 	const { text } = useGreeting(name);
 
 	return (
-		<div className={`
-			w-full h-full flex flex-col items-center justify-center
-			gap-4 px-4
-		`}>
+		<div className={`w-full flex flex-col items-center gap-3 pt-10 px-2`}>
 			<div className={`
-				flex items-center gap-2
-				text-void-fg-2 text-[15px]
+				flex flex-col items-center gap-2
+				text-void-fg-2 text-center
 				select-none
 			`}>
-				<OrinMark size={16} />
-				<span>{text}</span>
+				<OrinMark size={28} />
+				<span className="text-base font-medium text-void-fg-1">{text}</span>
+				<span className="text-xs text-void-fg-3">What can we build together?</span>
 			</div>
 
-			<div className="w-full max-w-sm">
+			<div className="w-full max-w-md">
 				{children}
 			</div>
 		</div>
