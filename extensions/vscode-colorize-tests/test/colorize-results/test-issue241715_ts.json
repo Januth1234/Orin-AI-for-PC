@@ -4733,7 +4733,7 @@
 	},
 	{
 		"c": "void",
-		"t": "source.ts keyword.operator.expression.void.ts",
+		"t": "source.ts keyword.operator.expression.orin.ts",
 		"r": {
 			"dark_plus": "keyword.operator.expression: #569CD6",
 			"light_plus": "keyword.operator.expression: #0000FF",

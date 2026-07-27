@@ -3379,7 +3379,7 @@
 					"include": "#typeof-operator"
 				},
 				{
-					"name": "keyword.operator.expression.void.js",
+					"name": "keyword.operator.expression.orin.js",
 					"match": "(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))void(?![_$[:alnum:]])(?:(?=\\.\\.\\.)|(?!\\.))"
 				},
 				{

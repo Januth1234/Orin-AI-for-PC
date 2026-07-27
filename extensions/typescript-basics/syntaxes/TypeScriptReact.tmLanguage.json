@@ -3379,7 +3379,7 @@
 					"include": "#typeof-operator"
 				},
 				{
-					"name": "keyword.operator.expression.void.tsx",
+					"name": "keyword.operator.expression.orin.tsx",
 					"match": "(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))void(?![_$[:alnum:]])(?:(?=\\.\\.\\.)|(?!\\.))"
 				},
 				{

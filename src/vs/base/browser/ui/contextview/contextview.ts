@@ -91,14 +91,14 @@ export const enum LayoutAnchorPosition {
 }
 
 export enum LayoutAnchorMode {
-	AVOID,
+	AORIN,
 	ALIGN
 }
 
 export interface ILayoutAnchor {
 	offset: number;
 	size: number;
-	mode?: LayoutAnchorMode; // default: AVOID
+	mode?: LayoutAnchorMode; // default: AORIN
 	position: LayoutAnchorPosition;
 }
 
@@ -327,7 +327,7 @@ export class ContextView extends Disposable {
 
 			// if view intersects vertically with anchor,  we must avoid the anchor
 			if (Range.intersects({ start: top, end: top + viewSizeHeight }, { start: verticalAnchor.offset, end: verticalAnchor.offset + verticalAnchor.size })) {
-				horizontalAnchor.mode = LayoutAnchorMode.AVOID;
+				horizontalAnchor.mode = LayoutAnchorMode.AORIN;
 			}
 
 			left = layout(activeWindow.innerWidth, viewSizeWidth, horizontalAnchor);
@@ -339,7 +339,7 @@ export class ContextView extends Disposable {
 
 			// if view intersects horizontally with anchor, we must avoid the anchor
 			if (Range.intersects({ start: left, end: left + viewSizeWidth }, { start: horizontalAnchor.offset, end: horizontalAnchor.offset + horizontalAnchor.size })) {
-				verticalAnchor.mode = LayoutAnchorMode.AVOID;
+				verticalAnchor.mode = LayoutAnchorMode.AORIN;
 			}
 
 			top = layout(activeWindow.innerHeight, viewSizeHeight, verticalAnchor) + activeWindow.pageYOffset;

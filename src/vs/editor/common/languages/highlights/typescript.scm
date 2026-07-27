@@ -414,7 +414,7 @@
 (regex_flags) @keyword.ts
 
 (unary_expression
-  "void" @keyword.operator.expression.void.ts)
+  "void" @keyword.operator.expression.orin.ts)
 
 [
   "new"

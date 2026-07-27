@@ -3428,7 +3428,7 @@
 					"include": "#typeof-operator"
 				},
 				{
-					"name": "keyword.operator.expression.void.ts",
+					"name": "keyword.operator.expression.orin.ts",
 					"match": "(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))void(?![_$[:alnum:]])(?:(?=\\.\\.\\.)|(?!\\.))"
 				},
 				{

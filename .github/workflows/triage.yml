@@ -38,7 +38,7 @@ jobs:
           echo "PWD: $(pwd)"
           ls -al
           ls -al .github/scripts || true
-          ls -al void/.github/scripts || true
+          ls -al orin/.github/scripts || true
 
       # 6️⃣ Generate roadmap and push only if it changed
       - name: Generate roadmap directly into wiki
