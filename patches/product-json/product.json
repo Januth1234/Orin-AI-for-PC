@@ -1,0 +1,41 @@
+{
+	"nameShort": "Orin AI",
+	"nameLong": "Orin AI",
+	"applicationName": "orin",
+	"dataFolderName": ".orin",
+	"win32MutexName": "orinai",
+	"licenseName": "MIT",
+	"licenseUrl": "https://github.com/<your-org>/orin/blob/main/LICENSE.txt",
+	"serverLicenseUrl": "https://github.com/<your-org>/orin/blob/main/LICENSE.txt",
+	"serverGreeting": [],
+	"serverLicense": [],
+	"serverLicensePrompt": "",
+	"serverApplicationName": "orin-server",
+	"serverDataFolderName": ".orin-server",
+	"tunnelApplicationName": "orin-tunnel",
+	"win32DirName": "Orin AI",
+	"win32NameVersion": "Orin AI",
+	"win32RegValueName": "OrinAI",
+	"win32x64AppId": "{{REPLACE-WITH-NEW-GUID}}",
+	"win32arm64AppId": "{{REPLACE-WITH-NEW-GUID}}",
+	"win32x64UserAppId": "{{REPLACE-WITH-NEW-GUID}}",
+	"win32arm64UserAppId": "{{REPLACE-WITH-NEW-GUID}}",
+	"win32AppUserModelId": "OrinAI.Code",
+	"win32ShellNameShort": "O&rin AI",
+	"win32TunnelServiceMutex": "orin-tunnelservice",
+	"win32TunnelMutex": "orin-tunnel",
+	"darwinBundleIdentifier": "ai.orin.code",
+	"linuxIconName": "orin-ai",
+	"licenseFileName": "LICENSE.txt",
+	"reportIssueUrl": "https://github.com/<your-org>/orin/issues/new",
+	"nodejsRepository": "https://nodejs.org",
+	"urlProtocol": "orin",
+	"extensionsGallery": {
+		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
+		"itemUrl": "https://marketplace.visualstudio.com/items"
+	},
+	"builtInExtensions": [],
+	"linkProtectionTrustedDomains": [
+		"https://ollama.com"
+	]
+}
