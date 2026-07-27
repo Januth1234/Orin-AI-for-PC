@@ -250,7 +250,7 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 // 	OnboardingPage
 // 		title:
 // 			div
-// 				"Welcome to Void"
+// 				"Welcome to Orin AI"
 // 			image
 // 		content:<></>
 // 		title
@@ -260,7 +260,7 @@ const AddProvidersPage = ({ pageIndex, setPageIndex }: { pageIndex: number, setP
 // 	OnboardingPage
 // 		title:
 // 			div
-// 				"How would you like to use Void?"
+// 				"How would you like to use Orin?"
 // 		content:
 // 			ModelQuestionContent
 // 				|

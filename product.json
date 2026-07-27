@@ -1,8 +1,8 @@
 {
 	"nameShort": "Orin AI",
 	"nameLong": "Orin AI",
-	"voidVersion": "1.4.9",
-	"voidRelease": "0044",
+	"orinVersion": "1.4.9",
+	"orinRelease": "0044",
 	"applicationName": "orin-ai",
 	"dataFolderName": ".orin",
 	"win32MutexName": "orinai",
