@@ -3,16 +3,12 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-// Redrawn from scratch - not a trace of the uploaded PNG. Single continuous
-// bolt path, asymmetric notch, no rounded-square lockup so it can sit
-// standalone (tab icon, avatar, favicon) or inside a container elsewhere.
-// Color intentionally differs from the source mark (amber, not teal) -
-// swap `accent` to whatever the final Orin palette lands on.
+// Single continuous Orin bolt mark shared by the app UI and Windows assets.
 
 export const OrinMark = ({
 	state = 'idle', // 'idle' | 'thinking' - thinking plays while a response is streaming
 	size = 28,
-	accent = '#e08a3c',
+	accent = '#55d6be',
 }: {
 	state?: 'idle' | 'thinking';
 	size?: number;
@@ -50,7 +46,7 @@ export const OrinMark = ({
 				role="img" aria-label="Orin"
 			>
 				<path
-					d="M13.6 3 L7.2 12.8 L11.4 12.8 L9.8 21 L17.4 10.4 L12.6 10.4 Z"
+					d="M13.6 2.625 L6.6 14.5 L11.8 14.5 L9.4 22.8 L18.9 9.4 L12.8 9.4 Z"
 					fill={accent}
 					style={{
 						transformOrigin: 'center',

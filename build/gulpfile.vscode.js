@@ -366,8 +366,8 @@ function packageTask(platform, arch, sourceFolderName, destinationFolderName, op
 				'resources/win32/vue.ico',
 				'resources/win32/xml.ico',
 				'resources/win32/yaml.ico',
-				'resources/win32/code_70x70.png',
-				'resources/win32/code_150x150.png'
+				'resources/win32/orin-70x70.png',
+				'resources/win32/orin-150x150.png'
 			], { base: '.' }));
 		} else if (platform === 'linux') {
 			all = es.merge(all, gulp.src('resources/linux/code.png', { base: '.' }));
