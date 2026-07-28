@@ -592,7 +592,9 @@ const sendMistralFIM = ({ messages, onFinalMessage, onError, settingsOfProvider,
 		return
 	}
 
-	const mistral = new MistralCore({ apiKey: settingsOfProvider.mistral.apiKey })
+	// Mistral's generated type declarations currently expose a zero-argument
+	// constructor even though the runtime accepts SDK options.
+	const mistral = new (MistralCore as any)({ apiKey: settingsOfProvider.mistral.apiKey }) as MistralCore
 	fimComplete(mistral,
 		{
 			model: modelName,
