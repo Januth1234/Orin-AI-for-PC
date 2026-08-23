@@ -160,6 +160,12 @@ function AccountSection() {
         <SettingRow label="Plan" hint="Cloud models are metered by your orinai.org plan.">
           <span className="status-pill status-connected">Linked</span>
         </SettingRow>
+        <SettingRow label="Sync across devices" hint="Settings and chats follow your Orin AI account.">
+          <Toggle
+            checked={useSettingsStore.getState().cloudSync}
+            onChange={(value) => useSettingsStore.getState().update({ cloudSync: value })}
+          />
+        </SettingRow>
         <div className="account-actions">
           <button className="connect-button" onClick={() => void logout()}>
             Sign out
