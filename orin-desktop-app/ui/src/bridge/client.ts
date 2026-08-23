@@ -18,6 +18,8 @@ import type {
 
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
+export type { AuthSession, AuthStatus } from './types'
+
 async function invoke<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
   if (!isTauri) return mockInvoke<T>(command, args)
   const { invoke } = await import('@tauri-apps/api/core')
