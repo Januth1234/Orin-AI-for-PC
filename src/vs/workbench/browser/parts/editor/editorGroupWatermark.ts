@@ -184,7 +184,14 @@ export class EditorGroupWatermark extends Disposable {
 			// Orin - if the workbench is empty, show open
 			if (this.contextService.getWorkbenchState() === WorkbenchState.EMPTY) {
 
-				// Create a flex container for buttons with vertical direction
+				const welcomeCopy = $('div.orin-empty-workspace-copy');
+				const title = append(welcomeCopy, $('strong'));
+				title.textContent = 'Start a project with Orin';
+				const subtitle = append(welcomeCopy, $('span'));
+				subtitle.textContent = 'Connect a folder, then let your agents build with you.';
+				orinIconBox.appendChild(welcomeCopy);
+
+				// Project actions for the empty workspace.
 				const buttonContainer = $('div');
 				buttonContainer.style.display = 'flex';
 				buttonContainer.style.flexDirection = 'column'; // Change to column for vertical stacking
@@ -198,7 +205,7 @@ export class EditorGroupWatermark extends Disposable {
 				openFolderButton.root.classList.add('orin-openfolder-button')
 				openFolderButton.root.style.display = 'block'
 				openFolderButton.root.style.width = '124px' // Set width to 124px as requested
-				openFolderButton.root.textContent = 'Open Folder'
+				openFolderButton.root.textContent = 'Open a project'
 				openFolderButton.root.onclick = () => {
 					this.commandService.executeCommand(isMacintosh && isNative ? OpenFileFolderAction.ID : OpenFolderAction.ID)
 					// if (this.contextKeyService.contextMatchesRules(ContextKeyExpr.and(WorkbenchStateContext.isEqualTo('workspace')))) {
@@ -209,13 +216,12 @@ export class EditorGroupWatermark extends Disposable {
 				}
 				buttonContainer.appendChild(openFolderButton.root);
 
-				// Open SSH button
+				// Remote project access
 				const openSSHButton = h('button')
 				openSSHButton.root.classList.add('orin-openssh-button')
 				openSSHButton.root.style.display = 'block'
-				openSSHButton.root.style.backgroundColor = '#5a5a5a' // Made darker than the default gray
 				openSSHButton.root.style.width = '124px' // Set width to 124px as requested
-				openSSHButton.root.textContent = 'Open SSH'
+				openSSHButton.root.textContent = 'Connect remotely'
 				openSSHButton.root.onclick = () => {
 					this.viewsService.openViewContainer(REMOTE_EXPLORER_VIEWLET_ID);
 				}

@@ -163,6 +163,8 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 		options.icon = join(environmentMainService.appRoot, 'resources/linux/code.png'); // always on Linux
 	} else if (isWindows && !environmentMainService.isBuilt) {
 		options.icon = join(environmentMainService.appRoot, 'resources/win32/orin-150x150.png'); // only when running out of sources on Windows
+	} else if (isWindows && environmentMainService.isBuilt) {
+		options.icon = join(environmentMainService.appRoot, productService.win32?.icon || 'resources/win32/code.ico');
 	}
 
 	if (isMacintosh) {

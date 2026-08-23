@@ -28,6 +28,9 @@
 	"win32TunnelMutex": "orin-ai-tunnel",
 	"darwinBundleIdentifier": "ai.orin.code",
 	"linuxIconName": "orin-ai",
+	"win32": {
+		"icon": "resources/win32/orin.ico"
+	},
 	"licenseFileName": "LICENSE.txt",
 	"reportIssueUrl": "https://github.com/Januth1234/Orin-AI-for-PC/issues/new",
 	"nodejsRepository": "https://nodejs.org",

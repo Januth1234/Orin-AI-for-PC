@@ -11,7 +11,6 @@ import { ScrollType } from '../../../../../../../editor/common/editorCommon.js';
 
 import { ChatMarkdownRender, ChatMessageLocation, getApplyBoxId } from '../markdown/ChatMarkdownRender.js';
 import { URI } from '../../../../../../../base/common/uri.js';
-import { IDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { ErrorDisplay } from './ErrorDisplay.js';
 import { BlockCode, TextAreaFns, OrinCustomDropdownBox, OrinInputBox2, OrinSlider, OrinSwitch, OrinDiffEditor } from '../util/inputs.js';
 import { ModelDropdown, } from '../orin-settings-tsx/ModelDropdown.js';
@@ -25,9 +24,8 @@ import { getModelCapabilities, getIsReasoningEnabledState } from '../../../../co
 import { AlertTriangle, File, Ban, Check, ChevronRight, Dot, FileIcon, Pencil, Undo, Undo2, X, Flag, Copy as CopyIcon, Info, CirclePlus, Ellipsis, CircleEllipsis, Folder, ALargeSmall, TypeOutline, Text } from 'lucide-react';
 import { ChatMessage, CheckpointEntry, StagingSelectionItem, ToolMessage } from '../../../../common/chatThreadServiceTypes.js';
 import { approvalTypeOfBuiltinToolName, BuiltinToolCallParams, BuiltinToolName, ToolName, LintErrorItem, ToolApprovalType, toolApprovalTypes } from '../../../../common/toolsServiceTypes.js';
-import { CopyButton, EditToolAcceptRejectButtonsHTML, IconShell1, JumpToFileButton, JumpToTerminalButton, StatusIndicator, StatusIndicatorForApplyButton, useApplyStreamState, useEditToolStreamState } from '../markdown/ApplyBlockHoverButtons.js';
+import { CopyButton, EditToolAcceptRejectButtonsHTML, IconShell1, StatusIndicator, useEditToolStreamState } from '../markdown/ApplyBlockHoverButtons.js';
 import { IsRunningType } from '../../../chatThreadService.js';
-import { acceptAllBg, acceptBorder, buttonFontSize, buttonTextColor, rejectAllBg, rejectBg, rejectBorder } from '../../../../common/helpers/colors.js';
 import { builtinToolNames, isABuiltinToolName, MAX_FILE_CHARS_PAGE, MAX_TERMINAL_INACTIVE_TIME } from '../../../../common/prompt/prompts.js';
 import { RawToolCallObj } from '../../../../common/sendLLMMessageTypes.js';
 import ErrorBoundary from './ErrorBoundary.js';
@@ -3101,7 +3099,7 @@ export const SidebarChat = () => {
 		{[
 			'Summarize my codebase',
 			'How do types work in Rust?',
-			'Create a .voidrules file for me'
+			'Create a .orinrules file for me'
 		].map((text, index) => (
 			<div
 				key={index}

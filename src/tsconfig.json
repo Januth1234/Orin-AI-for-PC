@@ -1,6 +1,7 @@
 {
 	"extends": "./tsconfig.base.json",
 	"compilerOptions": {
+		"skipLibCheck": true,
 		"esModuleInterop": true,
 		"removeComments": false,
 		"preserveConstEnums": true,

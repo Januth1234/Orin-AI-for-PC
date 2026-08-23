@@ -3,8 +3,7 @@
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { execSync } from 'child_process';
-import { spawn } from 'cross-spawn'
+import { execSync, spawn } from 'child_process';
 // Added lines below
 import fs from 'fs';
 import path from 'path';
@@ -145,10 +144,10 @@ if (isWatch) {
 	console.log('📦 Building...');
 
 	// Run scope-tailwind once
-	execSync('npx scope-tailwind ./src -o src2/ -s orin-scope -c styles.css -p "orin-"', { stdio: 'inherit' });
+	execSync('npx --yes scope-tailwind ./src -o src2/ -s orin-scope -c styles.css -p "orin-"', { stdio: 'inherit', shell: true });
 
 	// Run tsup once
-	execSync('npx tsup', { stdio: 'inherit' });
+	execSync('npx --yes tsup', { stdio: 'inherit', shell: true });
 
 	console.log('✅ Build complete!');
 }

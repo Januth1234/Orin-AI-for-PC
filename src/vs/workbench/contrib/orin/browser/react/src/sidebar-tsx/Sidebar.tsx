@@ -1,55 +1,63 @@
 /*--------------------------------------------------------------------------------------
- *  Copyright 2025 Glass Devtools, Inc. All rights reserved.
+ *  Copyright 2026 Orin AI. All rights reserved.
  *  Licensed under the Apache License, Version 2.0. See LICENSE.txt for more information.
  *--------------------------------------------------------------------------------------*/
 
-import { useFullChatThreadsStreamState, useIsDark } from '../util/services.js';
-// import { SidebarThreadSelector } from './SidebarThreadSelector.js';
-// import { SidebarChat } from './SidebarChat.js';
-
-import '../styles.css'
+import { useAccessor, useActiveURI, useChatThreadsState, useFullChatThreadsStreamState, useIsDark } from '../util/services.js';
+import '../styles.css';
 import { SidebarChat } from './SidebarChat.js';
+import { PastThreadsList } from './SidebarThreadSelector.js';
 import ErrorBoundary from './ErrorBoundary.js';
 import { OrinMark } from './OrinMark.js';
 
-export const Sidebar = ({ className }: { className: string }) => {
+const shortName = (value: string | undefined) => value?.split(/[\\/]/).filter(Boolean).pop() || 'No folder connected';
 
-	const isDark = useIsDark()
-	const streamState = useFullChatThreadsStreamState()
-	const isWorking = Object.values(streamState).some(state => state?.isRunning === 'LLM' || state?.isRunning === 'tool' || state?.isRunning === 'idle')
-	return <div
-		className={`@@orin-scope ${isDark ? 'dark' : ''}`}
-		style={{ width: '100%', height: '100%' }}
-	>
-		<div
-			// default background + text styles for sidebar
-			className={`
-				w-full h-full
-				bg-orin-bg-2
-				text-orin-fg-1
-			`}
-		>
+const ProjectsPane = () => {
+	const accessor = useAccessor();
+	const chatThreadsService = accessor.get('IChatThreadService');
+	const activeURI = useActiveURI();
+	const threadsState = useChatThreadsState();
+	return <aside className="orin-workspace-projects">
+		<div className="orin-pane-title"><span>Projects</span><button onClick={() => chatThreadsService.openNewThread()} title="New conversation">+</button></div>
+		<div className="orin-connected-project"><span className="orin-project-dot" /><div><strong>{shortName(activeURI?.fsPath)}</strong><small>Folder connected</small></div></div>
+		<div className="orin-thread-heading"><span>Conversations</span><span>{Object.keys(threadsState.allThreads).length}</span></div>
+		<ErrorBoundary><PastThreadsList className="orin-workspace-threads" /></ErrorBoundary>
+		<button className="orin-new-chat" onClick={() => chatThreadsService.openNewThread()}>+ New conversation</button>
+	</aside>;
+};
 
-			<div className={`w-full h-full flex flex-col`}>
-				<header className="flex items-center justify-between px-4 py-3 border-b border-orin-border-3/70 bg-orin-bg-2-alt">
-					<div className="flex items-center gap-2 min-w-0">
-						<OrinMark state={isWorking ? 'thinking' : 'idle'} size={22} />
-						<div className="flex flex-col leading-tight">
-							<span className="text-sm font-semibold tracking-[0.01em] text-orin-fg-1">Orin AI</span>
-							<span className="text-[10px] text-orin-fg-3">{isWorking ? 'Agent working' : 'Ready to help'}</span>
-						</div>
-					</div>
-					<span className="text-[10px] uppercase tracking-[0.14em] text-orin-accent">Agent</span>
-				</header>
-				<div className="min-h-0 flex-1">
-				<ErrorBoundary>
-					<SidebarChat />
-				</ErrorBoundary>
-				</div>
-			</div>
+const ActivityPane = () => {
+	const accessor = useAccessor();
+	const chatThreadsService = accessor.get('IChatThreadService');
+	const streamState = useFullChatThreadsStreamState();
+	const activeURI = useActiveURI();
+	const activeProcesses = Object.entries(streamState).filter(([, state]) => !!state?.isRunning);
+	return <aside className="orin-workspace-activity">
+		<div className="orin-pane-title"><span>Workspace</span><button title="Run current project">▶</button></div>
+		<div className="orin-code-card"><span className="orin-code-label">Live code</span><strong>{shortName(activeURI?.fsPath)}</strong><small>{activeURI ? 'Open in the editor to the right' : 'Select a file to begin'}</small></div>
+		<div className="orin-thread-heading"><span>Active processes</span><span>{activeProcesses.length}</span></div>
+		<div className="orin-process-list">
+			{activeProcesses.length === 0 ? <div className="orin-empty-process"><span>✓</span><p>No active work</p><small>Start a conversation or launch a subagent.</small></div> : activeProcesses.map(([threadId, state]) => <div className="orin-process" key={threadId}><span className="orin-process-pulse" /><div><strong>{state?.isRunning === 'tool' ? 'Editing project files' : 'Orin agent thinking'}</strong><small>{state?.isRunning === 'tool' ? 'Running a tool' : 'Streaming a response'}</small></div></div>)}
 		</div>
-	</div>
+		<button className="orin-subagent" onClick={() => { /* Subagent orchestration is exposed as a separate conversation. */ chatThreadsService.openNewThread(); }}>
+			<span>ϟ</span><div><strong>Deploy subagent</strong><small>Open a parallel agent task</small></div>
+		</button>
+	</aside>;
+};
 
-
-}
-
+export const Sidebar = ({ className }: { className: string }) => {
+	const isDark = useIsDark();
+	const streamState = useFullChatThreadsStreamState();
+	const isWorking = Object.values(streamState).some(state => state?.isRunning === 'LLM' || state?.isRunning === 'tool' || state?.isRunning === 'idle');
+	return <div className={`@@orin-scope ${isDark ? 'dark' : ''} orin-agent-shell ${className || ''}`}>
+		<header className="orin-agent-header">
+			<div className="orin-agent-brand"><OrinMark state={isWorking ? 'thinking' : 'idle'} size={28} /><div><strong>Orin AI</strong><small>{isWorking ? 'Agent working' : 'Ready to build'}</small></div></div>
+			<div className="orin-agent-header-status"><span className={isWorking ? 'is-live' : ''} />{isWorking ? 'Working' : 'Agent'}</div>
+		</header>
+		<div className="orin-agent-workspace">
+			<ProjectsPane />
+			<section className="orin-workspace-chat"><ErrorBoundary><SidebarChat /></ErrorBoundary></section>
+			<ActivityPane />
+		</div>
+	</div>;
+};
