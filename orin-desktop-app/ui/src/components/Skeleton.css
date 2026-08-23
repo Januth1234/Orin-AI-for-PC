@@ -1,0 +1,13 @@
+/* Skeleton — shimmering loading block. */
+.skeleton {
+  display: inline-block;
+  background: linear-gradient(100deg, var(--panel) 40%, var(--panel-raised) 50%, var(--panel) 60%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite linear;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    background-position-x: -200%;
+  }
+}

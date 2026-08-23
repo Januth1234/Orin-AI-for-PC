@@ -28,3 +28,9 @@ product.overrides.json
 .tool-versions
 src/vs/workbench/contrib/orin/browser/react/out/**
 src/vs/workbench/contrib/orin/browser/react/src2/**
+
+# AI tooling session data (local only)
+.zcode/
+
+# stale build output copies
+out-build-old/

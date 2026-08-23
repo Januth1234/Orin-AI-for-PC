@@ -1,0 +1,10 @@
+/* Minimal app container styles */
+.app-container {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Theme variables will be handled by Layout.css */

@@ -1,0 +1,149 @@
+/* HistorySearch — searchable conversation history modal. */
+.history-search {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.history-search-field {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 12px 14px;
+  padding: 0 11px;
+  height: 36px;
+  border-radius: var(--radius);
+  background: var(--input);
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  transition: border-color var(--speed-fast) ease, box-shadow var(--speed-fast) ease;
+}
+
+.history-search-field:focus-within {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.history-search-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-bright);
+  font-size: var(--fs-base);
+}
+
+.history-search-field input::placeholder {
+  color: var(--muted-2);
+}
+
+.history-search-count {
+  flex: none;
+  color: var(--muted-2);
+  font-size: var(--fs-2xs);
+}
+
+/* ----------------------------------------------------------------- results */
+.history-results {
+  min-height: 120px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+
+.history-no-match {
+  padding: 26px 8px;
+  text-align: center;
+  color: var(--muted-2);
+  font-size: var(--fs-sm);
+}
+
+.history-group {
+  margin-bottom: 6px;
+}
+
+.history-group-title {
+  margin: 0;
+  padding: 10px 8px 5px;
+  color: var(--muted-2);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* ContextMenu wraps each row; stretch the wrapper so rows span the panel. */
+.history-results .ctx-anchor {
+  display: flex;
+  width: 100%;
+}
+
+.history-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  transition: background var(--speed-fast) ease;
+}
+
+.history-row.active {
+  background: rgba(236, 231, 224, 0.07);
+}
+
+.history-row:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.history-row-icon {
+  flex: none;
+  color: var(--muted-2);
+}
+
+.history-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.history-row-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-bright);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.history-row-snippet {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.history-row-time {
+  flex: none;
+  color: var(--muted-2);
+  font-size: var(--fs-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ hints */
+.history-hints {
+  flex: none;
+  display: flex;
+  gap: 16px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted-2);
+  font-size: var(--fs-2xs);
+}

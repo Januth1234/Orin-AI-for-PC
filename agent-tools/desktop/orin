@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# orin — device-control CLI for the AI agent (see README.md).
+# Usage: ./orin <command> [args…]   Commands: screen|move|click|double|right|
+# down|up|drag|scroll|type|key|combo|win|start|clipboard
+set -u
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SHOTS="$DIR/../../orin-desktop-app/docs/shots"
+mkdir -p "$SHOTS"
+PS=(powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File)
+
+cmd="${1:-}"; shift || true
+
+case "$cmd" in
+  screen)
+    out="${1:-$SHOTS/screen-$(date +%s).png}"
+    "${PS[@]}" "$DIR/ps/screen.ps1" -Out "$(cygpath -w "$out")"
+    ;;
+  move|click|double|right|down|up|drag|scroll)
+    "${PS[@]}" "$DIR/ps/mouse.ps1" -Action "$cmd" "$@"
+    ;;
+  type|key|combo)
+    "${PS[@]}" "$DIR/ps/keys.ps1" -Mode "$cmd" "$@"
+    ;;
+  win)
+    sub="${1:-list}"; shift || true
+    "${PS[@]}" "$DIR/ps/win.ps1" -Mode "$sub" "$@"
+    ;;
+  start)
+    exe="$1"; shift
+    "${PS[@]}" "$DIR/ps/start.ps1" -Target "$(cygpath -w "$exe")" "$@"
+    ;;
+  clipboard)
+    text="$*"
+    printf '%s' "$text" | clip.exe
+    echo "clipboard set (${#text} chars)"
+    ;;
+  *)
+    grep '^# Usage' "$0" | head -2
+    exit 1
+    ;;
+esac

@@ -1,0 +1,63 @@
+/* Command palette (Ctrl+Shift+P) — developer-tool feel, not a dropdown. */
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.palette-input {
+  padding: 11px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--input);
+  color: var(--text-bright);
+  font-size: var(--fs-base);
+}
+
+.palette-input:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.palette-input::placeholder {
+  color: var(--muted-2);
+}
+
+.palette-list {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.palette-empty {
+  margin: 0;
+  padding: 14px 12px;
+  color: var(--muted-2);
+  font-size: var(--fs-sm);
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  text-align: left;
+}
+
+.palette-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.palette-item kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted-2);
+}

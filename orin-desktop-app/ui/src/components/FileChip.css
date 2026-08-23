@@ -1,0 +1,70 @@
+/* FileChip — attachment pill with optional image thumbnail. */
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 220px;
+  height: 28px;
+  padding: 0 6px 0 8px;
+  border-radius: var(--radius-sm);
+  background: var(--panel-overlay);
+  border: 1px solid var(--line-strong);
+  font-size: var(--fs-xs);
+}
+
+.file-chip-icon {
+  flex: none;
+  display: inline-flex;
+  color: var(--muted);
+}
+
+.kind-image .file-chip-icon {
+  color: var(--accent);
+}
+
+.file-chip-thumb {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.file-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.file-chip-size {
+  flex: none;
+  color: var(--muted-2);
+  font-size: var(--fs-2xs);
+}
+
+.file-chip-remove {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--muted-2);
+  transition:
+    background var(--speed-fast) ease,
+    color var(--speed-fast) ease;
+}
+
+.file-chip-remove:hover {
+  background: rgba(236, 231, 224, 0.1);
+  color: var(--danger);
+}
+
+.file-chip-remove:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

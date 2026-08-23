@@ -1,0 +1,59 @@
+/* Orin AI — design tokens.
+ * Palette: charcoal/near-black canvas, slightly lighter panels, thin lines,
+ * warm amber accent (#e08a3c). Fonts: Inter (UI), JetBrains Mono (code),
+ * system fallbacks for offline-first rendering.
+ */
+:root {
+  /* surfaces */
+  --canvas: #0e0d0b;
+  --panel: #161513;
+  --panel-raised: #1d1c19;
+  --panel-overlay: #242320;
+  --input: #201f1c;
+
+  /* lines & text */
+  --line: rgba(236, 231, 224, 0.09);
+  --line-strong: rgba(236, 231, 224, 0.16);
+  --text: #ece7de;
+  --text-bright: #fbf7ef;
+  --muted: #8f8b84;
+  --muted-2: #6b685f;
+
+  /* accent (amber bolt) + status */
+  --accent: #e08a3c;
+  --accent-hover: #eb9848;
+  --accent-soft: rgba(224, 138, 60, 0.14);
+  --accent-line: rgba(224, 138, 60, 0.4);
+  --on-accent: #221709;
+  --success: #7bc78a;
+  --success-soft: rgba(123, 199, 138, 0.12);
+  --warn: #e3a36d;
+  --warn-soft: rgba(227, 163, 109, 0.12);
+  --danger: #d96b57;
+  --danger-soft: rgba(217, 107, 87, 0.12);
+  --info: #8ab4d9;
+
+  /* shape */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+
+  /* type scale (desktop-first) */
+  --font-ui: 'Inter', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 21px;
+  --fs-hero: 26px;
+
+  --shadow-panel: 0 8px 30px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --focus-ring: 0 0 0 2px var(--accent-line);
+
+  --speed-fast: 120ms;
+  --speed: 180ms;
+}

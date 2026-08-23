@@ -1,0 +1,28 @@
+/* ContextMenu — fixed positioning for right-click / anchored menus. */
+.ctx-anchor {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.ctx-click-target {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+.ctx-click-target:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ctx-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 110;
+}
+
+.ctx-submenu {
+  margin: 0;
+}
