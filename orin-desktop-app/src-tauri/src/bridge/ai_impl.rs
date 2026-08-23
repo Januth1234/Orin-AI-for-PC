@@ -1,6 +1,6 @@
 // Provider implementations behind `ai_send`. Every stream chunk must carry the
 // requestId from the original request so the renderer can correlate events.
-use super::ai::{AiMessage, ModelInfo};
+use super::ai::{AiMessage, MessagePart, ModelInfo};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
@@ -27,6 +27,7 @@ pub async fn generate(
     match model_id.split('/').next().unwrap_or("mock") {
         "anthropic" => anthropic::stream(model_id, system, messages, abort, &emit_chunk).await,
         "mock" => mock::stream(messages, abort, &emit_chunk).await,
+        "orin" => orin_cloud::stream(app, request_id, system, messages, abort).await,
         preset => {
             openai_compat::stream(
                 preset,
@@ -57,8 +58,8 @@ fn last_user_text(messages: &[AiMessage]) -> String {
         .unwrap_or_default()
 }
 
-pub fn catalog() -> Vec<ModelInfo> {
-    vec![
+pub fn catalog(signed_in: bool) -> Vec<ModelInfo> {
+    let mut models = vec![
         ModelInfo { id: "mock/orin-offline".into(), provider: "mock".into(), label: "Orin Offline".into(), tier: "balanced".into(), speed: 3, intelligence: 1, context_tokens: 32_000 },
         ModelInfo { id: "anthropic/claude-sonnet-4-5".into(), provider: "anthropic".into(), label: "Claude Sonnet 4.5".into(), tier: "balanced".into(), speed: 2, intelligence: 3, context_tokens: 200_000 },
         ModelInfo { id: "anthropic/claude-haiku-4".into(), provider: "anthropic".into(), label: "Claude Haiku 4".into(), tier: "fast".into(), speed: 3, intelligence: 2, context_tokens: 200_000 },
@@ -69,7 +70,14 @@ pub fn catalog() -> Vec<ModelInfo> {
         ModelInfo { id: "openrouter/google/gemma-3-27b-it:free".into(), provider: "openrouter".into(), label: "Gemma 3 27B · Free".into(), tier: "fast".into(), speed: 3, intelligence: 2, context_tokens: 96_000 },
         ModelInfo { id: "groq/llama-3.3-70b-versatile".into(), provider: "groq".into(), label: "Llama 3.3 70B (Groq)".into(), tier: "fast".into(), speed: 3, intelligence: 2, context_tokens: 131_072 },
         ModelInfo { id: "gemini/gemini-2.0-flash".into(), provider: "gemini".into(), label: "Gemini 2.0 Flash".into(), tier: "fast".into(), speed: 3, intelligence: 2, context_tokens: 1_048_576 },
-    ]
+    ];
+    // Orin Cloud models appear only for signed-in users — they are metered by
+    // the orinai.org plan server-side (no local key involved).
+    if signed_in {
+        models.push(ModelInfo { id: "orin/orin-pro".into(), provider: "orin_cloud".into(), label: "Orin Pro · Cloud".into(), tier: "balanced".into(), speed: 3, intelligence: 3, context_tokens: 128_000 });
+        models.push(ModelInfo { id: "orin/orin-flash".into(), provider: "orin_cloud".into(), label: "Orin Flash · Cloud".into(), tier: "fast".into(), speed: 3, intelligence: 2, context_tokens: 128_000 });
+    }
+    models
 }
 
 /// Offline typewriter responder — proves the full event pipeline and keeps the
@@ -277,5 +285,130 @@ pub mod openai_compat {
             }
         }
         Ok(full)
+    }
+}
+
+/// Orin Cloud — chat routed through orinai.org's `/api/chat`, metered by the
+/// user's plan server-side. The upstream is non-streaming today, so the
+/// finished answer is delivered as a single `ai-chunk`.
+pub mod orin_cloud {
+    use super::*;
+    use crate::bridge::auth;
+    use tauri::Manager;
+
+    pub async fn stream(
+        app: &AppHandle,
+        request_id: &str,
+        system: &Option<String>,
+        messages: &[AiMessage],
+        abort: Arc<AtomicBool>,
+    ) -> StreamResult {
+        let _ = system; // v1: the server applies its own tone/memory instructions
+        let state = app.state::<crate::bridge::AppState>();
+        let token = auth::ensure_id_token(state.inner()).await.map_err(|_| {
+            "Sign in to Settings → Account to use Orin Cloud models.".to_string()
+        })?;
+
+        if abort.load(Ordering::Relaxed) {
+            return Err("aborted".into());
+        }
+        let response = reqwest::Client::new()
+            .post(format!("{}/api/chat", auth::api_base()))
+            .bearer_auth(token)
+            .json(&chat_payload(messages))
+            .send()
+            .await
+            .map_err(|error| format!("Network error contacting Orin AI: {error}"))?;
+
+        let status = response.status().as_u16();
+        if status == 401 {
+            return Err("Your session expired. Open Settings → Account and sign in again.".into());
+        }
+        if status == 429 {
+            return Err("You've hit your Orin AI plan limit for now. It resets daily.".into());
+        }
+        if !(200..300).contains(&status) {
+            let detail = response.text().await.unwrap_or_default();
+            return Err(format!("Orin AI error {status}. {detail}"));
+        }
+        let value: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+        let text = value["text"].as_str().unwrap_or_default().to_string();
+
+        let _ = app.emit(
+            "ai-chunk",
+            serde_json::json!({ "requestId": request_id, "delta": text }),
+        );
+        Ok(value["text"].as_str().unwrap_or_default().to_string())
+    }
+
+    /// Plain-chat contract (verified against api/chat.js): latest user turn is
+    /// `prompt`; every prior non-empty turn becomes `history` verbatim.
+    pub fn chat_payload(messages: &[AiMessage]) -> serde_json::Value {
+        let turns: Vec<(String, String)> = messages
+            .iter()
+            .filter_map(|m| {
+                let content = m
+                    .parts
+                    .iter()
+                    .filter(|part| part.kind == "text")
+                    .map(|part| part.text.clone())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                (!content.is_empty()).then(|| (m.role.clone(), content))
+            })
+            .collect();
+        let prompt = turns
+            .last()
+            .filter(|(role, _)| role == "user")
+            .map(|(_, content)| content.clone())
+            .unwrap_or_default();
+        let mut history = turns;
+        if !prompt.is_empty() {
+            history.pop();
+        }
+        let history: Vec<serde_json::Value> = history
+            .into_iter()
+            .map(|(role, content)| serde_json::json!({ "role": role, "content": content }))
+            .collect();
+        serde_json::json!({ "mode": "chat", "prompt": prompt, "history": history })
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        fn msg(role: &str, text: &str) -> AiMessage {
+            AiMessage {
+                role: role.into(),
+                parts: vec![MessagePart {
+                    kind: "text".into(),
+                    text: text.into(),
+                    media_type: String::new(),
+                    base64: String::new(),
+                }],
+            }
+        }
+
+        #[test]
+        fn payload_matches_backend_contract() {
+            let payload =
+                chat_payload(&[msg("user", "hi"), msg("assistant", "hello"), msg("user", "bye")]);
+            assert_eq!(payload["mode"], "chat");
+            assert_eq!(payload["prompt"], "bye");
+            assert_eq!(payload["history"].as_array().unwrap().len(), 2);
+            assert_eq!(payload["history"][0]["role"], "user");
+            assert_eq!(payload["history"][0]["content"], "hi");
+            assert_eq!(payload["history"][1]["role"], "assistant");
+            assert_eq!(payload["history"][1]["content"], "hello");
+        }
+
+        #[test]
+        fn empty_history_when_only_prompt() {
+            let payload = chat_payload(&[msg("assistant", "welcome"), msg("user", "go")]);
+            assert_eq!(payload["prompt"], "go");
+            assert_eq!(payload["history"].as_array().unwrap().len(), 1); // welcome kept
+            let solo = chat_payload(&[msg("user", "only")]);
+            assert_eq!(solo["history"].as_array().unwrap().len(), 0);
+        }
     }
 }
