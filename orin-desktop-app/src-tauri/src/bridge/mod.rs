@@ -9,6 +9,7 @@ pub mod fs;
 pub mod models_fetch;
 pub mod presets;
 pub mod store;
+pub mod sync;
 pub mod term;
 
 use std::collections::HashMap;

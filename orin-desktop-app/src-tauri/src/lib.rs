@@ -30,6 +30,8 @@ pub fn run() {
             bridge::auth::auth_register,
             bridge::auth::auth_status,
             bridge::auth::auth_logout,
+            bridge::sync::sync_pull,
+            bridge::sync::sync_push,
             bridge::fs::dialog_pick_folder,
             bridge::fs::fs_read_dir,
             bridge::fs::fs_read_file,
