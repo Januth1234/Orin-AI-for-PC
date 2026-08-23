@@ -1,0 +1,210 @@
+# Orin AI — Bridge Contract (v1)
+
+Single source of truth for the boundary between the Rust core (`src-tauri/`)
+and the React UI (`ui/`). Both sides MUST match these names exactly — the
+compiler enforces the Rust side (`tauri::generate_handler!` in `lib.rs`),
+and `ui/src/bridge/client.ts` enforces the TypeScript side.
+
+Renderer never touches IO itself: every network call, file operation,
+process spawn, capture, and injection happens in Rust workers. The renderer
+sends commands and listens to events.
+
+## Commands (renderer → core, via `invoke`)
+
+### Persistence (SQLite-backed KV; typed tables may replace later)
+| Command | Args | Returns |
+|---|---|---|
+| `store_get` | `key: string` | `value: JsonValue \| null` |
+| `store_set` | `key: string, value: JsonValue` | `null` |
+| `store_delete` | `key: string` | `null` |
+
+### AI providers
+| Command | Args | Returns |
+|---|---|---|
+| `ai_send` | `req: AiSendRequest` | `requestId: string` |
+| `ai_abort` | `requestId: string` | `null` |
+| `models_list` | — | `ModelInfo[]` |
+| `provider_set_key` | `provider: string, key: string` | `null` (stores in OS credential manager) |
+| `provider_has_key` | `provider: string` | `bool` |
+
+Streaming results arrive as events (see below), correlated by `requestId`.
+
+### Files / workspace
+| Command | Args | Returns |
+|---|---|---|
+| `dialog_pick_folder` | — | `{ name, path } \| null` |
+| `fs_read_dir` | `path: string, depth: u32 (max 4)` | `FileNode[]` |
+| `fs_read_file` | `path: string` | `content: string` |
+| `fs_write_file` | `path: string, content: string` | `null` |
+| `fs_exists` | `path: string` | `bool` |
+| `git_status` | `root: string` | `map<path, "M"\|"A"\|"D"\|"U"\|"?"\|"clean">` |
+| `search_workspace` | `root: string, query: string, maxResults: u32` | `SearchHit[]` |
+
+### Terminal (ConPTY)
+| Command | Args | Returns |
+|---|---|---|
+| `term_create` | `cwd: string \| null` | `terminalId: string` |
+| `term_write` | `terminalId: string, data: string` | `null` |
+| `term_resize` | `terminalId: string, cols: u16, rows: u16` | `null` |
+| `term_kill` | `terminalId: string` | `null` |
+
+### Agent loop (server-side tool-use cycle)
+| Command | Args | Returns |
+|---|---|---|
+| `agent_run` | `task: AgentTask` | `runId: string` |
+| `agent_stop` | `runId: string` | `null` |
+| `approval_respond` | `approvalId: string, approved: bool` | `null` |
+
+The loop emits `agent-event` stream items. When a tool needs permission the
+core emits an `approval-request` inside `agent-event` and blocks until
+`approval_respond`.
+
+### Computer Use
+| Command | Args | Returns |
+|---|---|---|
+| `cu_start` | `task: CuTask` | `sessionId: string` |
+| `cu_stop` | `sessionId: string` | `null` |
+| `cu_permission_respond` | `promptId: string, allowed: bool` | `null` |
+| `cu_available_providers` | — | `["virtual", "windows", ...]` (present ones) |
+
+### Account (orinai.org sign-in)
+| Command | Args | Returns |
+|---|---|---|
+| `auth_login` | `identifier: string, password: string` | `Session` |
+| `auth_register` | `name: string, identifier: string, password: string` | `Session` |
+| `auth_status` | — | `{ signedIn: bool, session: Session \| null }` |
+| `auth_logout` | — | `null` |
+
+Session = `{uid, name, email, phone}`. Sign-in calls `/api/auth/password`,
+exchanges the custom token via Firebase Identity Toolkit and keeps the refresh
+token in the OS keyring; the ID token (~1 h) never leaves the Rust process.
+Signed-out is a normal state: cloud features degrade to local mode, and the
+Orin Cloud models (`orin/orin-pro`, `orin/orin-flash`) only appear in
+`models_list` while a session exists.
+
+### Sync
+| Command | Args | Returns |
+|---|---|---|
+| `sync_pull` | — | `{ blob: object \| null, updatedAt: string \| null }` |
+| `sync_push` | `blob: object (≤512 KB), schemaVersion?: number` | `null` |
+
+Backend endpoint: `/api/desktop-sync` (per-user, last-write-wins). The UI
+pushes a debounced whole snapshot (`settings` + `chats`) and pulls on launch;
+the toggle lives in Settings ▸ Account.
+
+### Misc
+| Command | Args | Returns |
+|---|---|---|
+| `app_info` | — | `{ version, os }` |
+
+## Events (core → renderer, via `listen`)
+
+| Event | Payload |
+|---|---|
+| `ai-chunk` | `{ requestId, delta }` |
+| `ai-done` | `{ requestId, message: AssistantResult, usage }` |
+| `ai-error` | `{ requestId, error }` |
+| `term-data` | `{ terminalId, data }` |
+| `term-exit` | `{ terminalId, exitCode }` |
+| `agent-event` | `{ runId, event: AgentEvent }` |
+| `cu-status` | `{ sessionId, phase, detail }` |
+| `cu-frame` | `{ sessionId, jpegBase64, width, height }` |
+| `cu-action` | `{ sessionId, action: CuAction, result }` |
+| `cu-permission` | `{ sessionId, promptId, title, detail, destructive }` |
+| `cu-done` | `{ sessionId, summary }` |
+| `cu-error` | `{ sessionId, error }` |
+| `notify` | `{ level: "info"\|"success"\|"warn"\|"error", title, body? }` |
+
+## Shared types
+
+```ts
+type Role = 'user' | 'assistant' | 'system'
+type MessagePart =
+  | { type: 'text'; text: string }
+  | { type: 'image'; mediaType: 'image/png' | 'image/jpeg'; base64: string }
+
+interface AiMessage { role: Role; parts: MessagePart[] }
+
+interface AiSendRequest {
+  requestId: string            // generated by renderer (crypto.randomUUID())
+  modelId: string              // from models_list()
+  system?: string
+  messages: AiMessage[]
+  maxTokens?: number
+}
+
+interface AssistantResult {
+  text: string
+  toolName?: string            // set when the model requested a tool
+  toolInput?: unknown
+  stopReason: 'end' | 'tool' | 'aborted' | 'error'
+}
+
+interface ModelInfo {
+  id: string                   // stable id, e.g. "anthropic/claude-sonnet-4"
+  provider: 'anthropic' | 'openai_compat' | 'mock'
+  label: string                // display name
+  tier: 'fast' | 'balanced' | 'reasoning' | 'max'
+  speed: number                // 1..3 dots
+  intelligence: number         // 1..3 dots
+  contextTokens: number
+}
+
+interface FileNode {
+  name: string; path: string; type: 'file' | 'folder'
+  size?: number; children?: FileNode[]
+}
+
+interface SearchHit { path: string; line: number; text: string }
+
+interface ToolDef { name: string; description: string; inputSchema: object }
+
+interface AgentTask {
+  modelId: string
+  mode: 'chat' | 'cowork' | 'agent'
+  instructions: string
+  history: AiMessage[]         // conversation so far
+  workspaceRoot?: string       // enables fs/git/terminal tools
+  projectInstructions?: string // custom instructions from active project
+}
+
+type AgentEvent =
+  | { kind: 'plan'; steps: string[] }
+  | { kind: 'step'; index: number; status: 'running' | 'done'; label: string }
+  | { kind: 'status'; label: string }
+  | { kind: 'tool-start'; toolCallId: string; tool: string; input: unknown }
+  | { kind: 'tool-end'; toolCallId: string; ok: boolean; summary: string }
+  | { kind: 'assistant-message'; text: string }
+  | { kind: 'diff'; path: string; change: 'added' | 'modified'; diffUnified: string; changeSummary: string; approvalId?: string }
+  | { kind: 'approval-request'; approvalId: string; tool: string; title: string; detail: string; destructive: boolean }
+  | { kind: 'done'; summary: string }
+  | { kind: 'error'; error: string }
+
+interface CuTask {
+  modelId: string
+  instruction: string
+  provider: 'virtual' | 'windows'   // chosen by user in UI
+  maxActions: number                // hard safety cap, e.g. 50
+}
+
+type CuAction =
+  | { type: 'click'; x: number; y: number; button: 'left' | 'right' | 'double' }
+  | { type: 'move'; x: number; y: number }
+  | { type: 'type'; text: string }
+  | { type: 'key'; key: string }
+  | { type: 'scroll'; x: number; y: number; amount: number }
+  | { type: 'drag'; fromX: number; fromY: number; toX: number; toY: number }
+  | { type: 'wait'; ms: number }
+  | { type: 'open_app'; name: string }
+  | { type: 'focus_window'; title: string }
+```
+
+## Conventions
+
+- Coordinates in `CuAction` are normalized 0..1000 relative to screen/frame
+  dimensions (avoids DPI bugs end-to-end).
+- All timestamps are ISO-8601 strings; all ids UUIDv4 strings.
+- Errors: commands reject with a human-readable string; the UI maps known
+  failures to friendly cards (never raw dumps).
+- The mock AI provider always answers (typewriter text) so the whole UI is
+  demoable with zero keys configured.
