@@ -87,8 +87,6 @@ function SignInForm({
   deviceUserCode: string | null
 }) {
   const [mode, setMode] = useState<'browser' | 'password'>('browser')
-  const [tab, setTab] = useState<'login' | 'register'>('login')
-  const [name, setName] = useState('')
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -99,12 +97,11 @@ function SignInForm({
     if (err) setError(err)
   }
 
+  // Accounts are created on orinai.org only — the desktop app signs in,
+  // it never registers.
   const submit = async () => {
     setError(null)
-    const err =
-      tab === 'login'
-        ? await useAuthStore.getState().login(identifier.trim(), password)
-        : await useAuthStore.getState().register(name.trim(), identifier.trim(), password)
+    const err = await useAuthStore.getState().login(identifier.trim(), password)
     if (err) setError(err)
   }
 
@@ -139,12 +136,6 @@ function SignInForm({
         </>
       ) : (
         <>
-          {tab === 'register' && (
-            <label>
-              Name
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" />
-            </label>
-          )}
           <label>
             Email or phone
             <input
@@ -154,24 +145,16 @@ function SignInForm({
             />
           </label>
           <label>
-            Password{tab === 'register' ? ' (8+ characters)' : ''}
+            Password
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
           </label>
-          <div className="account-tabs">
-            <button className={tab === 'login' ? 'active' : ''} onClick={() => setTab('login')}>
-              Sign in
-            </button>
-            <button className={tab === 'register' ? 'active' : ''} onClick={() => setTab('register')}>
-              Create account
-            </button>
-          </div>
           {error && <p className="account-error">{error}</p>}
           <button
             className="btn btn-primary"
             disabled={busy || !identifier.trim() || !password}
             onClick={() => void submit()}
           >
-            {busy ? 'Working…' : tab === 'login' ? 'Sign in' : 'Create account'}
+            {busy ? 'Working…' : 'Sign in'}
           </button>
         </>
       )}

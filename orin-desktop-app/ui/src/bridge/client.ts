@@ -14,6 +14,7 @@ import type {
   FileNode,
   FolderPick,
   ModelInfo,
+  ProviderInfo,
   SearchHit,
 } from './types'
 
@@ -103,10 +104,19 @@ function mockInvoke<T>(command: string, args: Record<string, unknown>): Promise<
         ),
       )
     }
+    case 'open_external':
+      return Promise.resolve(undefined as T)
     case 'sync_pull':
       return Promise.resolve({ blob: null, updatedAt: null } as T)
     case 'sync_push':
       return Promise.resolve(undefined as T)
+    case 'providers_list':
+      return Promise.resolve([
+        { id: 'anthropic', label: 'Anthropic', baseUrl: '', keyRequired: true, hasKey: false },
+        { id: 'openai_compat', label: 'OpenAI-compatible', baseUrl: 'https://api.openai.com/v1', keyRequired: true, hasKey: false },
+      ] as T)
+    case 'models_fetch':
+      return Promise.resolve([] as T)
     case 'dialog_pick_folder':
       return Promise.resolve(null as T)
     case 'ai_send': {
@@ -170,6 +180,9 @@ export const bridge = {
   aiSend: (req: AiSendRequest) => invoke<string>('ai_send', { req }),
   aiAbort: (requestId: string) => invoke<void>('ai_abort', { requestId }),
   modelsList: (): Promise<ModelInfo[]> => invoke('models_list'),
+  providersList: (): Promise<ProviderInfo[]> => invoke('providers_list'),
+  modelsFetch: (presetId: string): Promise<ModelInfo[]> =>
+    invoke('models_fetch', { presetId }),
   providerSetKey: (provider: string, key: string) => invoke<void>('provider_set_key', { provider, key }),
   providerHasKey: (provider: string): Promise<boolean> => invoke('provider_has_key', { provider }),
 
@@ -212,6 +225,7 @@ export const bridge = {
   // once the user approves the code there (or rejects with expired/denied).
   authDeviceStart: () => invoke<AuthDeviceStart>('auth_device_start'),
   authDeviceWait: (deviceCode: string) => invoke<AuthSession>('auth_device_wait', { deviceCode }),
+  openExternal: (url: string) => invoke<void>('open_external', { url }),
   authStatus: (): Promise<AuthStatus> => invoke('auth_status'),
   authLogout: () => invoke<void>('auth_logout'),
   syncPull: <T = unknown>() =>

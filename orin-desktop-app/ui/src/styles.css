@@ -517,3 +517,21 @@ button {
   --shadow-panel: 0 8px 30px rgba(60, 50, 30, 0.08);
   --shadow-pop: 0 12px 40px rgba(60, 50, 30, 0.12);
 }
+
+/* Boot splash — brief flash while stores hydrate before the gate decides. */
+.boot-splash {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boot-mark {
+  font-size: 30px;
+  animation: boot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes boot-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}

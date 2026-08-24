@@ -76,6 +76,7 @@ core emits an `approval-request` inside `agent-event` and blocks until
 | `auth_device_wait` | `deviceCode: string` | `Session` once approved; errors on denied/expired/timeout |
 | `auth_status` | — | `{ signedIn: bool, session: Session \| null }` |
 | `auth_logout` | — | `null` |
+| `open_external` | `url: string` (http/https only) | opens the system browser — used for account creation, which lives on orinai.org |
 
 Session = `{uid, name, email, phone}`. Password sign-in calls
 `/api/auth/password`; browser sign-in uses the device grant on

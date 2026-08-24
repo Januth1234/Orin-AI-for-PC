@@ -154,3 +154,13 @@ export interface AuthDeviceStart {
   verifyUrl: string
   expiresInSecs: number
 }
+
+
+// Provider preset from providers_list (Settings models page, welcome BYOK gate)
+export interface ProviderInfo {
+  id: string
+  label: string
+  baseUrl: string
+  keyRequired: boolean
+  hasKey: boolean
+}

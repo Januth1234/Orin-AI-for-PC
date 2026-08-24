@@ -30,6 +30,7 @@ pub fn run() {
             bridge::auth::auth_register,
             bridge::auth::auth_device_start,
             bridge::auth::auth_device_wait,
+            bridge::auth::open_external,
             bridge::auth::auth_status,
             bridge::auth::auth_logout,
             bridge::sync::sync_pull,

@@ -325,6 +325,17 @@ fn open_in_browser(url: &str) {
     }
 }
 
+/// Open a URL in the system browser (account creation lives on orinai.org,
+/// never in this app). Only http(s) — arbitrary schemes are refused.
+#[tauri::command]
+pub fn open_external(url: String) -> Result<(), String> {
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err("Only http(s) URLs can be opened.".into());
+    }
+    open_in_browser(&url);
+    Ok(())
+}
+
 /// Decode one base64url JWT segment.
 fn b64url_decode(segment: &str) -> Option<Vec<u8>> {
     URL_SAFE_NO_PAD.decode(segment).ok()
