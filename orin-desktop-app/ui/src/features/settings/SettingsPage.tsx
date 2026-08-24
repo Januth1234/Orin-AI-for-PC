@@ -5,7 +5,8 @@ import { useAuthStore } from '../../stores/authStore'
 import { SettingRow, SettingsLayout, useLocalSection, Toggle } from './SettingsLayout'
 import './settings.css'
 
-const KEY_STORAGE = 'settings-active-section'
+/** Storage key shared with Layout's account chip, which deep-links here. */
+export const SETTINGS_SECTION_KEY = 'settings-active-section'
 
 function ModelsSection() {
   const [keys, setKeys] = useState<Record<string, string>>({})
@@ -80,62 +81,102 @@ function ModelsSection() {
 
 function SignInForm({
   busy,
-  onSubmit,
+  deviceUserCode,
 }: {
   busy: boolean
-  onSubmit: (identifier: string, password: string) => Promise<string | null>
+  deviceUserCode: string | null
 }) {
+  const [mode, setMode] = useState<'browser' | 'password'>('browser')
   const [tab, setTab] = useState<'login' | 'register'>('login')
   const [name, setName] = useState('')
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
 
+  const browserLogin = async () => {
+    setError(null)
+    const err = await useAuthStore.getState().loginWithBrowser()
+    if (err) setError(err)
+  }
+
   const submit = async () => {
     setError(null)
     const err =
       tab === 'login'
-        ? await onSubmit(identifier.trim(), password)
+        ? await useAuthStore.getState().login(identifier.trim(), password)
         : await useAuthStore.getState().register(name.trim(), identifier.trim(), password)
     if (err) setError(err)
   }
 
+  const waiting = busy && mode === 'browser'
+
   return (
     <div className="account-auth">
       <div className="account-tabs">
-        <button className={tab === 'login' ? 'active' : ''} onClick={() => setTab('login')}>
-          Sign in
+        <button className={mode === 'browser' ? 'active' : ''} onClick={() => setMode('browser')}>
+          Browser sign-in
         </button>
-        <button className={tab === 'register' ? 'active' : ''} onClick={() => setTab('register')}>
-          Create account
+        <button className={mode === 'password' ? 'active' : ''} onClick={() => setMode('password')}>
+          Email / phone
         </button>
       </div>
-      {tab === 'register' && (
-        <label>
-          Name
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" />
-        </label>
+
+      {mode === 'browser' ? (
+        <>
+          <button className="btn btn-primary" disabled={busy} onClick={() => void browserLogin()}>
+            {waiting ? 'Waiting for approval…' : 'Sign in via orinai.org'}
+          </button>
+          {waiting ? (
+            <p className="setting-hint">
+              Your browser opened the Orin AI sign-in page. Sign in there and approve code{' '}
+              <span className="account-code">{deviceUserCode}</span> — this app connects automatically.
+            </p>
+          ) : (
+            <p className="setting-hint">
+              Opens www.orinai.org in your browser. Sign in there and approve this device.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {tab === 'register' && (
+            <label>
+              Name
+              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" />
+            </label>
+          )}
+          <label>
+            Email or phone
+            <input
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder="you@example.com or +94…"
+            />
+          </label>
+          <label>
+            Password{tab === 'register' ? ' (8+ characters)' : ''}
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          </label>
+          <div className="account-tabs">
+            <button className={tab === 'login' ? 'active' : ''} onClick={() => setTab('login')}>
+              Sign in
+            </button>
+            <button className={tab === 'register' ? 'active' : ''} onClick={() => setTab('register')}>
+              Create account
+            </button>
+          </div>
+          {error && <p className="account-error">{error}</p>}
+          <button
+            className="btn btn-primary"
+            disabled={busy || !identifier.trim() || !password}
+            onClick={() => void submit()}
+          >
+            {busy ? 'Working…' : tab === 'login' ? 'Sign in' : 'Create account'}
+          </button>
+        </>
       )}
-      <label>
-        Email or phone
-        <input
-          value={identifier}
-          onChange={(event) => setIdentifier(event.target.value)}
-          placeholder="you@example.com or +94…"
-        />
-      </label>
-      <label>
-        Password{tab === 'register' ? ' (8+ characters)' : ''}
-        <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
-      </label>
-      {error && <p className="account-error">{error}</p>}
-      <button
-        className="btn btn-primary"
-        disabled={busy || !identifier.trim() || !password}
-        onClick={() => void submit()}
-      >
-        {busy ? 'Working…' : tab === 'login' ? 'Sign in' : 'Create account'}
-      </button>
+
+      {error && mode === 'browser' && <p className="account-error">{error}</p>}
       <p className="setting-hint">Same account as orinai.org. Your password is verified server-side only.</p>
     </div>
   )
@@ -144,7 +185,9 @@ function SignInForm({
 function AccountSection() {
   const status = useAuthStore((state) => state.status)
   const busy = useAuthStore((state) => state.busy)
+  const deviceUserCode = useAuthStore((state) => state.deviceUserCode)
   const logout = useAuthStore((state) => state.logout)
+  const [view, setView] = useState<'signin' | 'byok'>('signin')
 
   useEffect(() => {
     useAuthStore.getState().hydrate()
@@ -175,11 +218,28 @@ function AccountSection() {
     )
   }
 
+  if (view === 'byok') {
+    return (
+      <div>
+        <ModelsSection />
+        <div className="account-actions">
+          <button className="connect-button" onClick={() => setView('signin')}>
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <SignInForm
-      busy={busy}
-      onSubmit={(identifier, password) => useAuthStore.getState().login(identifier, password)}
-    />
+    <div>
+      <SignInForm busy={busy} deviceUserCode={deviceUserCode} />
+      <div className="account-actions">
+        <button className="account-link" onClick={() => setView('byok')}>
+          Use your own API key instead
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -192,7 +252,7 @@ const SHORTCUTS: Array<[string, string]> = [
 
 export default function SettingsPage() {
   const settings = useSettingsStore()
-  const [sectionId, selectSection] = useLocalSection('general', KEY_STORAGE)
+  const [sectionId, selectSection] = useLocalSection('general', SETTINGS_SECTION_KEY)
 
   const sections = [
     {

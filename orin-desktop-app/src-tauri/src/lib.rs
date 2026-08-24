@@ -28,6 +28,8 @@ pub fn run() {
             bridge::ai::provider_has_key,
             bridge::auth::auth_login,
             bridge::auth::auth_register,
+            bridge::auth::auth_device_start,
+            bridge::auth::auth_device_wait,
             bridge::auth::auth_status,
             bridge::auth::auth_logout,
             bridge::sync::sync_pull,

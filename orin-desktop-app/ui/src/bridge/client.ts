@@ -6,6 +6,7 @@ import type {
   AgentTask,
   AiMessage,
   AiSendRequest,
+  AuthDeviceStart,
   AuthSession,
   AuthStatus,
   CuTask,
@@ -18,7 +19,7 @@ import type {
 
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
-export type { AuthSession, AuthStatus } from './types'
+export type { AuthSession, AuthStatus, AuthDeviceStart } from './types'
 
 async function invoke<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
   if (!isTauri) return mockInvoke<T>(command, args)
@@ -86,6 +87,22 @@ function mockInvoke<T>(command: string, args: Record<string, unknown>): Promise<
       return Promise.resolve({ signedIn: false, session: null } as T)
     case 'auth_logout':
       return Promise.resolve(undefined as T)
+    case 'auth_device_start':
+      return Promise.resolve({
+        deviceCode: 'mock-device-code',
+        userCode: 'DEMO-CODE',
+        verifyUrl: 'https://orinai.org',
+        expiresInSecs: 600,
+      } as T)
+    case 'auth_device_wait': {
+      // Browser dev has no real approval page — sign in after a beat.
+      return new Promise<T>((resolve) =>
+        setTimeout(
+          () => resolve({ uid: 'mock-user', name: 'Browser Dev', email: 'dev@orin.ai', phone: '' } as T),
+          1500,
+        ),
+      )
+    }
     case 'sync_pull':
       return Promise.resolve({ blob: null, updatedAt: null } as T)
     case 'sync_push':
@@ -191,6 +208,10 @@ export const bridge = {
     invoke<AuthSession>('auth_login', { identifier, password }),
   authRegister: (name: string, identifier: string, password: string) =>
     invoke<AuthSession>('auth_register', { name, identifier, password }),
+  // Device flow: start opens orinai.org in the system browser; wait resolves
+  // once the user approves the code there (or rejects with expired/denied).
+  authDeviceStart: () => invoke<AuthDeviceStart>('auth_device_start'),
+  authDeviceWait: (deviceCode: string) => invoke<AuthSession>('auth_device_wait', { deviceCode }),
   authStatus: (): Promise<AuthStatus> => invoke('auth_status'),
   authLogout: () => invoke<void>('auth_logout'),
   syncPull: <T = unknown>() =>

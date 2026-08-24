@@ -72,12 +72,18 @@ core emits an `approval-request` inside `agent-event` and blocks until
 |---|---|---|
 | `auth_login` | `identifier: string, password: string` | `Session` |
 | `auth_register` | `name: string, identifier: string, password: string` | `Session` |
+| `auth_device_start` | — | `{ deviceCode, userCode, verifyUrl, expiresInSecs }` — also opens the system browser at `verifyUrl` |
+| `auth_device_wait` | `deviceCode: string` | `Session` once approved; errors on denied/expired/timeout |
 | `auth_status` | — | `{ signedIn: bool, session: Session \| null }` |
 | `auth_logout` | — | `null` |
 
-Session = `{uid, name, email, phone}`. Sign-in calls `/api/auth/password`,
-exchanges the custom token via Firebase Identity Toolkit and keeps the refresh
-token in the OS keyring; the ID token (~1 h) never leaves the Rust process.
+Session = `{uid, name, email, phone}`. Password sign-in calls
+`/api/auth/password`; browser sign-in uses the device grant on
+`/api/auth/device` (start → user approves the shown code on orinai.org →
+poll returns a custom token). Both exchange the custom token via Firebase
+Identity Toolkit and keep the refresh token in the OS keyring; the ID token
+(~1 h) never leaves the Rust process. In the device flow the profile is read
+from the ID-token claims.
 Signed-out is a normal state: cloud features degrade to local mode, and the
 Orin Cloud models (`orin/orin-pro`, `orin/orin-flash`) only appear in
 `models_list` while a session exists.

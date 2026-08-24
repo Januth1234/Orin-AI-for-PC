@@ -1,13 +1,20 @@
 // Bridge: Orin AI account sign-in and Firebase token lifecycle.
 // Cloud calls live here, never in the renderer. See docs/BRIDGE.md §Account.
 //
-// Flow: POST /api/auth/password → { customToken } → Identity Toolkit
-// signInWithCustomToken → { idToken, refreshToken }. The refresh token goes to
+// Password flow: POST /api/auth/password → { customToken, user } → Identity
+// Toolkit signInWithCustomToken → { idToken, refreshToken }.
+// Browser flow: /api/auth/device device grant — start → user approves on
+// orinai.org → poll returns a custom token → same exchange; the profile then
+// comes from the ID-token claims instead of the password endpoint.
+//
+// The refresh token goes to
 // the OS keyring; the ID token (~1 h) stays in memory and is refreshed
 // proactively when <10 min of life remains. Signed-out is a normal state:
 // callers treat ensure_id_token's Err as "not signed in" and degrade locally.
 use super::store;
 use super::AppState;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -154,6 +161,11 @@ fn clear_refresh(uid: &str) {
 /// Exchange the /api/auth/password custom token for ID+refresh tokens,
 /// persist session + refresh token, prime the cache. Returns the session.
 async fn establish(state: &AppState, custom_token: &str, session: Session) -> Result<Session, String> {
+    let tokens = exchange_custom_token(custom_token).await?;
+    persist_session(state, tokens, session).await
+}
+
+async fn exchange_custom_token(custom_token: &str) -> Result<Tokens, String> {
     let exchange = post_json(
         &format!(
             "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key={FIREBASE_WEB_API_KEY}"
@@ -161,7 +173,10 @@ async fn establish(state: &AppState, custom_token: &str, session: Session) -> Re
         serde_json::json!({ "token": custom_token, "returnSecureToken": true }),
     )
     .await?;
-    let tokens = parse_exchange(&exchange)?;
+    parse_exchange(&exchange)
+}
+
+async fn persist_session(state: &AppState, tokens: Tokens, session: Session) -> Result<Session, String> {
     store_refresh(&session.uid, &tokens.refresh_token)?;
     save_session(state, &session)?;
     let mut cache = state.auth_cache.lock().map_err(|_| "cache lock poisoned")?;
@@ -287,6 +302,130 @@ pub fn auth_logout(state: State<'_, AppState>) -> Result<(), String> {
     Ok(())
 }
 
+// ── Device flow (browser sign-in handoff) ────────────────────────────────────
+//
+// Mirrors /api/auth/device: start → open orinai.org in the system browser →
+// the user signs in there and approves the matching code → polling picks up a
+// custom token, which goes through the same Identity Toolkit exchange as the
+// password flow.
+
+fn open_in_browser(url: &str) {
+    #[cfg(target_os = "windows")]
+    {
+        // explorer.exe opens the default browser without a console flash.
+        let _ = std::process::Command::new("explorer").arg(url).spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+    }
+}
+
+/// Decode one base64url JWT segment.
+fn b64url_decode(segment: &str) -> Option<Vec<u8>> {
+    URL_SAFE_NO_PAD.decode(segment).ok()
+}
+
+/// Device-flow approval returns only a custom token — rebuild the profile from
+/// the ID-token claims (uid/email always; name falls back to email local-part).
+fn session_from_id_token(id_token: &str) -> Session {
+    let fallback =
+        |name: &str| Session { uid: String::new(), name: name.into(), email: String::new(), phone: String::new() };
+    let payload = id_token
+        .split('.')
+        .nth(1)
+        .and_then(b64url_decode)
+        .and_then(|raw| serde_json::from_slice::<serde_json::Value>(&raw).ok());
+    let Some(payload) = payload else { return fallback("Orin user") };
+    let email = payload["email"].as_str().unwrap_or_default().to_string();
+    let uid = payload["user_id"]
+        .as_str()
+        .or_else(|| payload["sub"].as_str())
+        .unwrap_or_default()
+        .to_string();
+    let name = payload["name"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| {
+            email.split('@').next().filter(|s| !s.is_empty()).unwrap_or("Orin user").to_string()
+        });
+    Session {
+        uid,
+        name,
+        email,
+        phone: payload["phone_number"].as_str().unwrap_or_default().to_string(),
+    }
+}
+
+#[derive(Serialize)]
+pub struct DeviceStart {
+    #[serde(rename = "deviceCode")]
+    pub device_code: String,
+    #[serde(rename = "userCode")]
+    pub user_code: String,
+    #[serde(rename = "verifyUrl")]
+    pub verify_url: String,
+    #[serde(rename = "expiresInSecs")]
+    pub expires_in_secs: u64,
+}
+
+#[tauri::command]
+pub async fn auth_device_start() -> Result<DeviceStart, String> {
+    let reply =
+        post_json(&format!("{}/api/auth/device", api_base()), serde_json::json!({ "action": "start" }))
+            .await?;
+    let start = DeviceStart {
+        device_code: reply["device_code"].as_str().ok_or("no device_code returned")?.to_string(),
+        user_code: reply["user_code"].as_str().ok_or("no user_code returned")?.to_string(),
+        verify_url: reply["verify_url"].as_str().unwrap_or(DEFAULT_API_BASE).to_string(),
+        expires_in_secs: reply["expires_in"].as_u64().unwrap_or(600),
+    };
+    if device_code_valid(&start.device_code) {
+        open_in_browser(&start.verify_url);
+    }
+    Ok(start)
+}
+
+fn device_code_valid(code: &str) -> bool {
+    code.len() == 64 && code.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+#[tauri::command]
+pub async fn auth_device_wait(device_code: String, state: State<'_, AppState>) -> Result<Session, String> {
+    if !device_code_valid(&device_code) {
+        return Err("Start a new sign-in from this app first.".into());
+    }
+    // Cover the full 10-minute server-side TTL plus network slack.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10 * 60 + 30);
+    loop {
+        let reply = post_json(
+            &format!("{}/api/auth/device", api_base()),
+            serde_json::json!({ "action": "token", "device_code": device_code.clone() }),
+        )
+        .await?;
+        match reply["status"].as_str().unwrap_or_default() {
+            "approved" => {
+                let custom = reply["custom_token"].as_str().ok_or("no custom token returned")?;
+                let tokens = exchange_custom_token(custom).await?;
+                let session = session_from_id_token(&tokens.id_token);
+                return persist_session(state.inner(), tokens, session).await;
+            }
+            "denied" => return Err("Sign-in was denied in the browser.".into()),
+            "expired" => return Err("The sign-in request expired — start again.".into()),
+            _ => {} // pending — keep polling
+        }
+        if std::time::Instant::now() >= deadline {
+            return Err("Timed out waiting for approval — start again.".into());
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -320,5 +459,40 @@ mod tests {
         let t2 = parse_refresh(&rf).unwrap();
         assert_eq!(t2.id_token, "def");
         assert_eq!(t2.expires_in_secs, 1800);
+    }
+
+    fn b64url(input: &str) -> String {
+        use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+        use base64::Engine as _;
+        URL_SAFE_NO_PAD.encode(input)
+    }
+
+    #[test]
+    fn session_from_id_token_parses_claims() {
+        let payload = serde_json::json!({
+            "user_id": "uid-123", "email": "ann@example.com",
+            "name": "Ann", "phone_number": "+94770000000"
+        });
+        let token = format!("hdr.{}.sig", b64url(&payload.to_string()));
+        let s = session_from_id_token(&token);
+        assert_eq!(s.uid, "uid-123");
+        assert_eq!(s.name, "Ann");
+        assert_eq!(s.email, "ann@example.com");
+        assert_eq!(s.phone, "+94770000000");
+
+        // No name → email local-part. No claims at all → safe fallback.
+        let minimal = serde_json::json!({ "user_id": "u9", "email": "bo@x.io" });
+        let s2 = session_from_id_token(&format!("h.{}.s", b64url(&minimal.to_string())));
+        assert_eq!(s2.name, "bo");
+        let s3 = session_from_id_token("not-a-jwt");
+        assert_eq!(s3.name, "Orin user");
+    }
+
+    #[test]
+    fn device_code_shape_is_enforced() {
+        let good = "a".repeat(64);
+        assert!(device_code_valid(&good));
+        assert!(!device_code_valid("short"));
+        assert!(!device_code_valid(&format!("{}z", "f".repeat(63)))); // z is not hex
     }
 }

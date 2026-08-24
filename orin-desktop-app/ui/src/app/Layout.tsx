@@ -19,6 +19,8 @@ import { Palette, useAppCommands } from '../components/CommandPalette'
 import { useUiStore, type ViewId } from '../stores/uiStore'
 import { useChatsStore } from '../stores/chatsStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useAuthStore } from '../stores/authStore'
+import { SETTINGS_SECTION_KEY } from '../features/settings/SettingsPage'
 import { HistorySearch } from '../features/chat/HistorySearch'
 import { CurrentView, ViewFallback } from './routes'
 
@@ -88,6 +90,18 @@ function NavRail() {
   const activeId = useChatsStore((state) => state.activeId)
   const selectChat = useChatsStore((state) => state.selectChat)
   const createChat = useChatsStore((state) => state.createChat)
+  const authStatus = useAuthStore((state) => state.status)
+
+  useEffect(() => {
+    void useAuthStore.getState().hydrate()
+  }, [])
+
+  const session = authStatus?.signedIn ? authStatus.session : null
+  const accountLabel = session ? `${session.name} · Cloud plan` : 'You · Local mode'
+  const openAccount = () => {
+    localStorage.setItem(SETTINGS_SECTION_KEY, 'account')
+    setView('settings')
+  }
 
   const recents = conversations.filter((chat) => !chat.archived).slice(0, 24)
 
@@ -170,9 +184,10 @@ function NavRail() {
       </div>
 
       <footer className="rail-footer">
-        <span className="account-chip">
-          <span className="account-avatar">Y</span> You · Free plan
-        </span>
+        <button className="account-chip" onClick={openAccount} title={session ? 'Account settings' : 'Sign in'}>
+          <span className="account-avatar">{(session?.name?.[0] ?? 'Y').toUpperCase()}</span>
+          {accountLabel}
+        </button>
         <button className="rail-footer-icon" title="Settings" onClick={() => setView('settings')}>
           <SlidersHorizontal size={14} />
         </button>

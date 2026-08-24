@@ -347,3 +347,24 @@
 .account-actions {
   margin-top: 4px;
 }
+
+.account-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.account-link:hover {
+  color: var(--text-bright);
+}
+
+.account-code {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}

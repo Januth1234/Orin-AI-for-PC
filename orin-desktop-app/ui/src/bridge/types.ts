@@ -146,3 +146,11 @@ export interface AuthStatus {
   signedIn: boolean
   session: AuthSession | null
 }
+
+// Device-flow sign-in handoff (browser approves on orinai.org)
+export interface AuthDeviceStart {
+  deviceCode: string
+  userCode: string
+  verifyUrl: string
+  expiresInSecs: number
+}
